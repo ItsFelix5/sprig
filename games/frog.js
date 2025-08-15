@@ -11,6 +11,8 @@ const car = "c"
 const road = "r"
 const sidewalk = "s"
 const house = "h"
+const water = "w"
+const log = "l"
 setLegend(
   [ frog, bitmap`
 ................
@@ -97,16 +99,50 @@ LLLLLLLLLLLLLLLL` ],
 ...CCCCCC000C...
 ...CCCCCC600C...
 ...CCCCCC000C...` ],
+  [ log, bitmap`
+................
+................
+................
+................
+CCCCCCCCCCCCCCCC
+C000CCCCCCCCCCCC
+CCCCCCCCC000CCCC
+CCCCCCCCCCCCCCCC
+CCC000CCCCCCCCCC
+CCCCCCCCCCCCCCCC
+CCCCCCCCCCC0000C
+CCCCCCCCCCCCCCCC
+................
+................
+................
+................` ],
+  [ water, bitmap`
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777
+7777777777777777` ],
 )
 
 setSolids([frog, house])
 setBackground(sidewalk)
 
-let dead;
-let moved = true
-let score = 0
+let dead, score, moved, logPos, logLength = 10;
 function spawn() {
   dead = false;
+  score = 0;
+  moved = true;
   clearText()
   addText("0", {x:0, color: color`5`})
   setMap(map`
@@ -132,30 +168,46 @@ function loop() {
     if(c.x == 0) c.remove()
     else c.x--
   })
-  if(tilesWith(frog, car).length > 0) {
+  if(tilesWith(frog, log).length == 1) getFirst(frog).x++
+  getAll(log).forEach(l=>{
+    if(l.x == width()-1) l.remove()
+    else l.x++
+  })
+  if(tilesWith(frog, car).length > 0 || tilesWith(frog, water).length > tilesWith(frog, log).length) {
     addText("You died!", {color: color`3`})
     dead = true;
     moved = true;
+    return;
   }
   const newCar = ~~(Math.random() * height())
   const tile = getTile(width()-1, newCar);
   if(tile.length == 1 && tile[0].type == road) addSprite(width() - 1, newCar, car)
+  if(++logLength < 4) addSprite(0, logPos, log)
+  else if(tile.length > 0 && tile[0].type == water) {
+    logPos = newCar;
+    logLength = 0;
+  }
   setTimeout(loop, 250)
 }
 
 function generateRow(y) {
-  if(Math.random() < 0.5) {
+  let r = Math.random()
+  if(r < 0.5) {
     for(let x = 0;x < width();x++) addSprite(x, y, road)
-  } else if(Math.random() < 0.4) {
+  } else if(r < 0.65) {
     for(let x = 0;x < width();x++) {
       if(Math.random() < 0.5) addSprite(x, y, house)
     }
+  } else if(r < 0.7) {
+    for(let x = 0;x < width();x++) addSprite(x, y, water)
   }
 }
 
 onInput("w", () => {
   if(moved) return;
   if(--getFirst(frog).y < height() - 2) {
+    logPos++
+    if(logPos > height()-1) logLength = 10
     getAll().forEach(s=>{
       if(s.y == height() - 1) s.remove()
       else s.y++
